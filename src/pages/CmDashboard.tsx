@@ -64,6 +64,17 @@ interface ApiResponse {
   data: CmCode[];
 }
 
+// Interface for Master Data API response
+interface MasterDataResponse {
+  success: boolean;
+  data: {
+    periods?: Array<{id: number, period: string}>;
+    regions?: Array<{id: number, name: string}>;
+    srm_leads?: string[];
+    signoff_statuses?: string[];
+  };
+}
+
 // CmDashboard: Main dashboard page for the sustainability portal
 const CmDashboard: React.FC = () => {
   const [cmCodes, setCmCodes] = useState<CmCode[]>([]);
@@ -186,143 +197,129 @@ const CmDashboard: React.FC = () => {
     fetchCmCodes();
   }, []);
 
-  // Fetch periods from API
+  // Fetch master data (periods, regions, SRM leads, signoff statuses) from single API
   useEffect(() => {
-    const fetchPeriods = async () => {
+    const fetchMasterData = async () => {
       try {
-        const result = await apiGet('/sku-details-active-years');
-        console.log('Periods API Response:', result);
-        if (result.success && Array.isArray(result.years)) {
-          // Handle both string and object formats
-          const processedPeriods = result.years.map((item: any) => {
-            if (typeof item === 'string') {
-              return { id: item, period: item };
-            } else if (item && typeof item === 'object' && item.id && item.period) {
-              return { id: item.id, period: item.period };
-            } else {
-              return null;
-            }
-          }).filter(Boolean);
-          setPeriods(processedPeriods);
-          console.log('Available periods:', processedPeriods);
-          
-          // Set current period as default (most recent period)
-          if (processedPeriods.length > 0) {
-            // Sort periods to get the most recent one (assuming periods are in format like "2024", "2025", etc.)
-            const sortedPeriods = [...processedPeriods].sort((a, b) => {
-              const aYear = parseInt(a.period);
-              const bYear = parseInt(b.period);
-              return bYear - aYear; // Sort in descending order (most recent first)
-            });
-            
-            const currentPeriod = sortedPeriods[0];
-            console.log('Setting current period as default:', currentPeriod);
-            setSelectedPeriod(currentPeriod.id.toString());
-            
-            // Apply the current period filter automatically
-            setAppliedFilters(prev => ({
-              ...prev,
-              period: currentPeriod.id.toString()
-            }));
-          }
-        } else {
-          setPeriods([]);
-        }
-      } catch (err) {
-        console.error('Error fetching periods:', err);
-        setPeriods([]);
-      }
-    };
-    fetchPeriods();
-  }, []);
-
-  // Fetch regions from API
-  useEffect(() => {
-    const fetchRegions = async () => {
-      try {
-        const result = await apiGet('/regions');
-        console.log('Regions API Response:', result);
+        console.log('Fetching master data from /masterdata endpoint');
+        const result: MasterDataResponse = await apiGet('/masterdata');
+        console.log('Master Data API Response:', result);
         
-        if (result.success && Array.isArray(result.data)) {
-          // Extract region names from the API response
-          const regionNames = result.data.map((region: any) => region.name);
-          setRegions(regionNames);
-          console.log('Available regions:', regionNames);
+        if (result.success && result.data) {
+                     // Process periods
+           if (result.data.periods && Array.isArray(result.data.periods)) {
+             const processedPeriods = result.data.periods.map((item: any) => {
+               if (typeof item === 'string') {
+                 return { id: parseInt(item), period: item };
+               } else if (item && typeof item === 'object' && item.id && item.period) {
+                 return { id: parseInt(item.id), period: item.period };
+               } else {
+                 return null;
+               }
+             }).filter((item): item is { id: number; period: string } => item !== null);
+             setPeriods(processedPeriods);
+             console.log('Available periods:', processedPeriods);
+             
+             // Set current period as default (most recent period)
+             if (processedPeriods.length > 0) {
+               const sortedPeriods = [...processedPeriods].sort((a, b) => {
+                 const aYear = parseInt(a.period);
+                 const bYear = parseInt(b.period);
+                 return bYear - aYear; // Sort in descending order (most recent first)
+               });
+               
+               const currentPeriod = sortedPeriods[0];
+               console.log('Setting current period as default:', currentPeriod);
+               setSelectedPeriod(currentPeriod.id.toString());
+               
+               // Apply the current period filter automatically
+               setAppliedFilters(prev => ({
+                 ...prev,
+                 period: currentPeriod.id.toString()
+               }));
+             }
+          } else {
+            setPeriods([]);
+          }
+          
+          // Process regions
+          if (result.data.regions && Array.isArray(result.data.regions)) {
+            const regionNames = result.data.regions.map((region: any) => region.name);
+            setRegions(regionNames);
+            console.log('Available regions:', regionNames);
+          } else {
+            // Fallback to hardcoded data if not available in API
+            const fallbackRegions = [
+              'ANZ', 'CHINA', 'EU', 'ISC', 'Latam', 'MEA', 'NA', 'North Asia', 'SEAT'
+            ];
+            setRegions(fallbackRegions);
+            console.log('Using fallback regions:', fallbackRegions);
+          }
+          
+          // Process SRM leads
+          if (result.data.srm_leads && Array.isArray(result.data.srm_leads)) {
+            setSrmLeads(result.data.srm_leads);
+            console.log('Available SRM Leads:', result.data.srm_leads);
+          } else {
+            // Fallback to hardcoded data if not available in API
+            const fallbackSrmLeads = [
+              'Alejandro Concha', 'Bart Kawa', 'Chris Alziar', 'David Patterson',
+              'David Wang', 'Elizabeth Ramirez', 'Eric Schock', 'Fabrice Dollet',
+              'Grace Adekanmbi', 'Grace Adekanmbirthi', 'Jennifer Wo', 'Johnnie Walker',
+              'Juan Acero', 'Kumi Mino', 'Mandeep Bhatia', 'Marcel Widmer',
+              'Marcus Baer', 'Marina Shlyaptseva', 'Mark Jones', 'Matthias Rabaey',
+              'Maura Scalon', 'Maura Scanlon', 'Mayra Garcia', 'Moegamat Ganief Creighton',
+              'Moises Franco', 'Monica Mayorga', 'Rahul Kak', 'Sonia Munoz',
+              'Syed Mohsin Mazhar', 'Tan Ping Ping', 'Tracey Adams'
+            ];
+            setSrmLeads(fallbackSrmLeads);
+            console.log('Using fallback SRM leads:', fallbackSrmLeads);
+          }
+          
+          // Process signoff statuses
+          if (result.data.signoff_statuses && Array.isArray(result.data.signoff_statuses)) {
+            setSignoffStatuses(result.data.signoff_statuses);
+            console.log('Available signoff statuses:', result.data.signoff_statuses);
+          } else {
+            // Fallback to default statuses if not available in API
+            setSignoffStatuses(['signed', 'pending', 'rejected']);
+            console.log('Using fallback signoff statuses:', ['signed', 'pending', 'rejected']);
+          }
+          
         } else {
-          // Fallback to hardcoded data if API fails
-          const fallbackRegions = [
-            'ANZ',
-            'CHINA',
-            'EU',
-            'ISC',
-            'Latam',
-            'MEA',
-            'NA',
-            'North Asia',
-            'SEAT'
-          ];
-          setRegions(fallbackRegions);
-          console.log('Using fallback regions:', fallbackRegions);
+          // If API fails, set fallback data
+          setPeriods([]);
+          setRegions(['ANZ', 'CHINA', 'EU', 'ISC', 'Latam', 'MEA', 'NA', 'North Asia', 'SEAT']);
+          setSrmLeads(['Alejandro Concha', 'Bart Kawa', 'Chris Alziar', 'David Patterson',
+            'David Wang', 'Elizabeth Ramirez', 'Eric Schock', 'Fabrice Dollet',
+            'Grace Adekanmbi', 'Grace Adekanmbirthi', 'Jennifer Wo', 'Johnnie Walker',
+            'Juan Acero', 'Kumi Mino', 'Mandeep Bhatia', 'Marcel Widmer',
+            'Marcus Baer', 'Marina Shlyaptseva', 'Mark Jones', 'Matthias Rabaey',
+            'Maura Scalon', 'Maura Scanlon', 'Mayra Garcia', 'Moegamat Ganief Creighton',
+            'Moises Franco', 'Monica Mayorga', 'Rahul Kak', 'Sonia Munoz',
+            'Syed Mohsin Mazhar', 'Tan Ping Ping', 'Tracey Adams']);
+          setSignoffStatuses(['signed', 'pending', 'rejected']);
+          console.log('API failed, using fallback data');
         }
       } catch (err) {
-        console.error('Error fetching regions:', err);
-        // Fallback to hardcoded data if API fails
-        const fallbackRegions = [
-          'ANZ',
-          'CHINA',
-          'EU',
-          'ISC',
-          'Latam',
-          'MEA',
-          'NA',
-          'North Asia',
-          'SEAT'
-        ];
-        setRegions(fallbackRegions);
-        console.log('Using fallback regions due to error:', fallbackRegions);
+        console.error('Error fetching master data:', err);
+        // Set fallback data on error
+        setPeriods([]);
+        setRegions(['ANZ', 'CHINA', 'EU', 'ISC', 'Latam', 'MEA', 'NA', 'North Asia', 'SEAT']);
+        setSrmLeads(['Alejandro Concha', 'Bart Kawa', 'Chris Alziar', 'David Patterson',
+          'David Wang', 'Elizabeth Ramirez', 'Eric Schock', 'Fabrice Dollet',
+          'Grace Adekanmbi', 'Grace Adekanmbirthi', 'Jennifer Wo', 'Johnnie Walker',
+          'Juan Acero', 'Kumi Mino', 'Mandeep Bhatia', 'Marcel Widmer',
+          'Marcus Baer', 'Marina Shlyaptseva', 'Mark Jones', 'Matthias Rabaey',
+          'Maura Scalon', 'Maura Scanlon', 'Mayra Garcia', 'Moegamat Ganief Creighton',
+          'Moises Franco', 'Monica Mayorga', 'Rahul Kak', 'Sonia Munoz',
+          'Syed Mohsin Mazhar', 'Tan Ping Ping', 'Tracey Adams']);
+        setSignoffStatuses(['signed', 'pending', 'rejected']);
+        console.log('Error occurred, using fallback data');
       }
     };
     
-    fetchRegions();
-  }, []);
-
-  // Set SRM Leads with hardcoded data
-  useEffect(() => {
-    const srmLeadsData = [
-      'Alejandro Concha',
-      'Bart Kawa',
-      'Chris Alziar',
-      'David Patterson',
-      'David Wang',
-      'Elizabeth Ramirez',
-      'Eric Schock',
-      'Fabrice Dollet',
-      'Grace Adekanmbi',
-      'Grace Adekanmbirthi',
-      'Jennifer Wo',
-      'Johnnie Walker',
-      'Juan Acero',
-      'Kumi Mino',
-      'Mandeep Bhatia',
-      'Marcel Widmer',
-      'Marcus Baer',
-      'Marina Shlyaptseva',
-      'Mark Jones',
-      'Matthias Rabaey',
-      'Maura Scalon',
-      'Maura Scanlon',
-      'Mayra Garcia',
-      'Moegamat Ganief Creighton',
-      'Moises Franco',
-      'Monica Mayorga',
-      'Rahul Kak',
-      'Sonia Munoz',
-      'Syed Mohsin Mazhar',
-      'Tan Ping Ping',
-      'Tracey Adams'
-    ];
-    setSrmLeads(srmLeadsData);
-    console.log('Available SRM Leads:', srmLeadsData);
+    fetchMasterData();
   }, []);
 
   // Set current period as default and apply filter when periods are loaded
