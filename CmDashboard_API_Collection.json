@@ -1,0 +1,567 @@
+{
+  "info": {
+    "name": "CmDashboard API Collection",
+    "description": "Complete API collection for the CmDashboard component - 3PM (Third Party Manufacturer) Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get CM Codes",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "description": "Azure AD Bearer token for authentication"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/cm-codes",
+          "host": ["{{base_url}}"],
+          "path": ["cm-codes"]
+        },
+        "description": "Fetches all CM (3PM) codes and their details for the dashboard table. This is the main API that populates the data table with 3PM information including codes, descriptions, regions, signoff status, and active status."
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cm-codes",
+              "host": ["{{base_url}}"],
+              "path": ["cm-codes"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"count\": 3,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"cm_code\": \"3PM001\",\n      \"cm_description\": \"ABC Manufacturing Company\",\n      \"created_at\": \"2024-01-15T10:30:00Z\",\n      \"updated_at\": \"2024-01-15T10:30:00Z\",\n      \"company_name\": \"ABC Manufacturing\",\n      \"signoff_by\": \"John Doe\",\n      \"signoff_date\": \"2024-01-20T14:30:00Z\",\n      \"signoff_status\": \"signed\",\n      \"document_url\": \"https://example.com/documents/3pm001.pdf\",\n      \"periods\": \"2,3\",\n      \"region_id\": 1,\n      \"region_name\": \"NA\",\n      \"srm_lead\": \"David Patterson\",\n      \"is_active\": true\n    },\n    {\n      \"id\": 2,\n      \"cm_code\": \"3PM002\",\n      \"cm_description\": \"XYZ Production Ltd\",\n      \"created_at\": \"2024-01-16T09:15:00Z\",\n      \"updated_at\": \"2024-01-16T09:15:00Z\",\n      \"company_name\": \"XYZ Production\",\n      \"signoff_by\": null,\n      \"signoff_date\": null,\n      \"signoff_status\": \"pending\",\n      \"document_url\": null,\n      \"periods\": \"2\",\n      \"region_id\": 2,\n      \"region_name\": \"EU\",\n      \"srm_lead\": \"Grace Adekanmbi\",\n      \"is_active\": true\n    },\n    {\n      \"id\": 3,\n      \"cm_code\": \"3PM003\",\n      \"cm_description\": \"DEF Industries Inc\",\n      \"created_at\": \"2024-01-17T11:45:00Z\",\n      \"updated_at\": \"2024-01-17T11:45:00Z\",\n      \"company_name\": \"DEF Industries\",\n      \"signoff_by\": \"Jane Smith\",\n      \"signoff_date\": \"2024-01-18T16:20:00Z\",\n      \"signoff_status\": \"rejected\",\n      \"document_url\": \"https://example.com/documents/3pm003.pdf\",\n      \"periods\": \"3\",\n      \"region_id\": 3,\n      \"region_name\": \"ANZ\",\n      \"srm_lead\": \"Mark Jones\",\n      \"is_active\": false\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Master Data",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "description": "Azure AD Bearer token for authentication"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/masterdata",
+          "host": ["{{base_url}}"],
+          "path": ["masterdata"]
+        },
+        "description": "Fetches master data including periods, regions, SRM leads, and signoff statuses. This API populates all the filter dropdowns in the dashboard. The periods are used to set the default latest year filter."
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/masterdata",
+              "host": ["{{base_url}}"],
+              "path": ["masterdata"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"data\": {\n    \"periods\": [\n      {\n        \"id\": 1,\n        \"period\": \"July 2023 to June 2024\"\n      },\n      {\n        \"id\": 2,\n        \"period\": \"July 2024 to June 2025\"\n      },\n      {\n        \"id\": 3,\n        \"period\": \"July 2025 to June 2026\"\n      }\n    ],\n    \"regions\": [\n      {\n        \"id\": 1,\n        \"name\": \"ANZ\"\n      },\n      {\n        \"id\": 2,\n        \"name\": \"CHINA\"\n      },\n      {\n        \"id\": 3,\n        \"name\": \"EU\"\n      },\n      {\n        \"id\": 4,\n        \"name\": \"ISC\"\n      },\n      {\n        \"id\": 5,\n        \"name\": \"Latam\"\n      },\n      {\n        \"id\": 6,\n        \"name\": \"MEA\"\n      },\n      {\n        \"id\": 7,\n        \"name\": \"NA\"\n      },\n      {\n        \"id\": 8,\n        \"name\": \"North Asia\"\n      },\n      {\n        \"id\": 9,\n        \"name\": \"SEAT\"\n      }\n    ],\n    \"srm_leads\": [\n      \"Alejandro Concha\",\n      \"Bart Kawa\",\n      \"Chris Alziar\",\n      \"David Patterson\",\n      \"David Wang\",\n      \"Elizabeth Ramirez\",\n      \"Eric Schock\",\n      \"Fabrice Dollet\",\n      \"Grace Adekanmbi\",\n      \"Grace Adekanmbirthi\",\n      \"Jennifer Wo\",\n      \"Johnnie Walker\",\n      \"Juan Acero\",\n      \"Kumi Mino\",\n      \"Mandeep Bhatia\",\n      \"Marcel Widmer\",\n      \"Marcus Baer\",\n      \"Marina Shlyaptseva\",\n      \"Mark Jones\",\n      \"Matthias Rabaey\",\n      \"Maura Scalon\",\n      \"Maura Scanlon\",\n      \"Mayra Garcia\",\n      \"Moegamat Ganief Creighton\",\n      \"Moises Franco\",\n      \"Monica Mayorga\",\n      \"Rahul Kak\",\n      \"Sonia Munoz\",\n      \"Syed Mohsin Mazhar\",\n      \"Tan Ping Ping\",\n      \"Tracey Adams\"\n    ],\n    \"signoff_statuses\": [\n      \"signed\",\n      \"pending\",\n      \"rejected\"\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Signoff Details by CM Period",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "description": "Azure AD Bearer token for authentication"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/signoff-details-by-cm-period?cm_code={{cm_code}}&period={{period_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["signoff-details-by-cm-period"],
+          "query": [
+            {
+              "key": "cm_code",
+              "value": "{{cm_code}}",
+              "description": "The CM code to get signoff details for"
+            },
+            {
+              "key": "period",
+              "value": "{{period_id}}",
+              "description": "The period ID (optional - if not provided, shows all periods)",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Fetches signoff details for a specific CM code and period. This API is called when users click the document icon in the table to view detailed signoff information including who signed off, when, and document URLs."
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/signoff-details-by-cm-period?cm_code=3PM001&period=2",
+              "host": ["{{base_url}}"],
+              "path": ["signoff-details-by-cm-period"],
+              "query": [
+                {
+                  "key": "cm_code",
+                  "value": "3PM001"
+                },
+                {
+                  "key": "period",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"cm_code\": \"3PM001\",\n  \"count\": 2,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"cm_code\": \"3PM001\",\n      \"period\": \"2\",\n      \"signoff_by\": \"John Doe\",\n      \"signoff_date\": \"2024-01-20T14:30:00Z\",\n      \"document_url\": \"https://example.com/documents/3pm001_period2.pdf\",\n      \"status\": \"signed\",\n      \"comments\": \"All requirements met for period 2\",\n      \"created_at\": \"2024-01-20T14:30:00Z\",\n      \"updated_at\": \"2024-01-20T14:30:00Z\"\n    },\n    {\n      \"id\": 2,\n      \"cm_code\": \"3PM001\",\n      \"period\": \"3\",\n      \"signoff_by\": \"Jane Smith\",\n      \"signoff_date\": \"2024-02-15T10:45:00Z\",\n      \"document_url\": \"https://example.com/documents/3pm001_period3.pdf\",\n      \"status\": \"signed\",\n      \"comments\": \"Period 3 requirements completed\",\n      \"created_at\": \"2024-02-15T10:45:00Z\",\n      \"updated_at\": \"2024-02-15T10:45:00Z\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add New 3PM",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "description": "Azure AD Bearer token for authentication"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"period\": \"2\",\n  \"srm_name\": \"David Patterson\",\n  \"srm_email\": \"david.patterson@company.com\",\n  \"cm_code\": \"3PM004\",\n  \"cm_description\": \"New Manufacturing Partner\",\n  \"region\": \"NA\",\n  \"spokes\": [\n    {\n      \"name\": \"John Contact\",\n      \"email\": \"john.contact@partner.com\",\n      \"signatory\": true\n    },\n    {\n      \"name\": \"Sarah Manager\",\n      \"email\": \"sarah.manager@partner.com\",\n      \"signatory\": false\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/addpm",
+          "host": ["{{base_url}}"],
+          "path": ["addpm"]
+        },
+        "description": "Adds a new 3PM (Third Party Manufacturer) entry to the system. This API is called when users submit the Add 3PM modal form. It creates a new CM code with associated SRM details, region, period, and spokes (Single Point of Contact)."
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period\": \"2\",\n  \"srm_name\": \"David Patterson\",\n  \"srm_email\": \"david.patterson@company.com\",\n  \"cm_code\": \"3PM004\",\n  \"cm_description\": \"New Manufacturing Partner\",\n  \"region\": \"NA\",\n  \"spokes\": [\n    {\n      \"name\": \"John Contact\",\n      \"email\": \"john.contact@partner.com\",\n      \"signatory\": true\n    },\n    {\n      \"name\": \"Sarah Manager\",\n      \"email\": \"sarah.manager@partner.com\",\n      \"signatory\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/addpm",
+              "host": ["{{base_url}}"],
+              "path": ["addpm"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"3PM added successfully\",\n  \"data\": {\n    \"id\": 4,\n    \"cm_code\": \"3PM004\",\n    \"cm_description\": \"New Manufacturing Partner\",\n    \"period\": \"2\",\n    \"region\": \"NA\",\n    \"srm_name\": \"David Patterson\",\n    \"srm_email\": \"david.patterson@company.com\",\n    \"spokes\": [\n      {\n        \"name\": \"John Contact\",\n        \"email\": \"john.contact@partner.com\",\n        \"signatory\": true\n      },\n      {\n        \"name\": \"Sarah Manager\",\n        \"email\": \"sarah.manager@partner.com\",\n        \"signatory\": false\n      }\n    ],\n    \"created_at\": \"2024-01-25T09:30:00Z\",\n    \"updated_at\": \"2024-01-25T09:30:00Z\"\n  }\n}"
+        },
+        {
+          "name": "Conflict Error - CM Code Already Exists",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period\": \"2\",\n  \"srm_name\": \"David Patterson\",\n  \"srm_email\": \"david.patterson@company.com\",\n  \"cm_code\": \"3PM001\",\n  \"cm_description\": \"New Manufacturing Partner\",\n  \"region\": \"NA\",\n  \"spokes\": [\n    {\n      \"name\": \"John Contact\",\n      \"email\": \"john.contact@partner.com\",\n      \"signatory\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/addpm",
+              "host": ["{{base_url}}"],
+              "path": ["addpm"]
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Conflict: 3PM Code already exists in the system\",\n  \"error\": \"CM_CODE_EXISTS\"\n}"
+        },
+        {
+          "name": "Validation Error - SPOCs Already Exist",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period\": \"2\",\n  \"srm_name\": \"David Patterson\",\n  \"srm_email\": \"david.patterson@company.com\",\n  \"cm_code\": \"3PM005\",\n  \"cm_description\": \"New Manufacturing Partner\",\n  \"region\": \"NA\",\n  \"spokes\": [\n    {\n      \"name\": \"Existing Contact\",\n      \"email\": \"existing@partner.com\",\n      \"signatory\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/addpm",
+              "host": ["{{base_url}}"],
+              "path": ["addpm"]
+            }
+          },
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"SPOCs already exist in the database: Existing Contact (existing@partner.com)\",\n  \"existing_spokes\": [\n    {\n      \"name\": \"Existing Contact\",\n      \"email\": \"existing@partner.com\"\n    }\n  ],\n  \"error\": \"SPOCS_EXIST\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Toggle CM Code Active Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "description": "Azure AD Bearer token for authentication"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_active\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/cm-codes/{{cm_id}}/toggle-active",
+          "host": ["{{base_url}}"],
+          "path": ["cm-codes", "{{cm_id}}", "toggle-active"]
+        },
+        "description": "Toggles the active/inactive status of a CM code. This API is called when users click the checkbox in the 'Is Active' column to activate or deactivate a 3PM. The request body contains the new active status."
+      },
+      "response": [
+        {
+          "name": "Success Response - Deactivate",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/cm-codes/1/toggle-active",
+              "host": ["{{base_url}}"],
+              "path": ["cm-codes", "1", "toggle-active"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"CM code status updated successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"cm_code\": \"3PM001\",\n    \"cm_description\": \"ABC Manufacturing Company\",\n    \"is_active\": false,\n    \"updated_at\": \"2024-01-25T15:30:00Z\"\n  }\n}"
+        },
+        {
+          "name": "Success Response - Activate",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/cm-codes/1/toggle-active",
+              "host": ["{{base_url}}"],
+              "path": ["cm-codes", "1", "toggle-active"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"message\": \"CM code status updated successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"cm_code\": \"3PM001\",\n    \"cm_description\": \"ABC Manufacturing Company\",\n    \"is_active\": true,\n    \"updated_at\": \"2024-01-25T15:30:00Z\"\n  }\n}"
+        },
+        {
+          "name": "Not Found Error",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/cm-codes/999/toggle-active",
+              "host": ["{{base_url}}"],
+              "path": ["cm-codes", "999", "toggle-active"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": false,\n  \"message\": \"CM code not found\",\n  \"error\": \"CM_CODE_NOT_FOUND\"\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set default values for variables if not already set",
+          "if (!pm.environment.get('base_url')) {",
+          "    pm.environment.set('base_url', 'http://localhost:3000');",
+          "}",
+          "",
+          "// You can add authentication logic here if needed",
+          "// For Azure AD authentication, you might need to get a fresh token",
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Base URL for the API server"
+    },
+    {
+      "key": "access_token",
+      "value": "your_azure_ad_bearer_token_here",
+      "type": "string",
+      "description": "Azure AD Bearer token for authentication"
+    },
+    {
+      "key": "cm_code",
+      "value": "3PM001",
+      "type": "string",
+      "description": "Example CM code for testing"
+    },
+    {
+      "key": "cm_id",
+      "value": "1",
+      "type": "string",
+      "description": "Example CM ID for testing"
+    },
+    {
+      "key": "period_id",
+      "value": "2",
+      "type": "string",
+      "description": "Example period ID for testing"
+    }
+  ]
+}
