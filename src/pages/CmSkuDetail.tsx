@@ -30,6 +30,7 @@ interface SkuData {
   formulation_reference?: string | null; // Optional formulation reference
   dual_source_sku?: string | null; // Dual source SKU information
   skutype?: string | null;       // SKU type: 'internal' or 'external'
+  bulk_expert?: string | null;   // Bulk or Expert option
 }
 
 /**
@@ -1307,6 +1308,30 @@ const CmSkuDetail: React.FC = () => {
   }, [showSkuSearchResults]);
 
   /**
+   * checkSkuExists Function
+   * Checks if a SKU code already exists in the system
+   * Used for validation before adding new SKUs
+   */
+  const checkSkuExists = async (skuCode: string): Promise<boolean> => {
+    try {
+      // Check if SKU exists in current data
+      const existingSku = skuData.find(sku => sku.sku_code.toLowerCase() === skuCode.toLowerCase());
+      if (existingSku) {
+        return true; // SKU already exists
+      }
+      
+      // Additional API check if needed (optional)
+      // const result = await apiGet(`/sku-details/check-exists/${encodeURIComponent(skuCode)}`);
+      // return result.exists || false;
+      
+      return false; // SKU doesn't exist
+    } catch (error) {
+      console.error('Error checking SKU existence:', error);
+      return false; // Assume doesn't exist on error
+    }
+  };
+
+  /**
    * handleAddSkuSave Function
    * Handles the creation of new SKUs via POST API call
    * This is the main function for adding new SKUs to the system
@@ -1360,12 +1385,29 @@ const CmSkuDetail: React.FC = () => {
     // Only block submission for actual errors, not informational messages
     if (errors.sku || errors.skuDescription || errors.period || errors.skuType || errors.referenceSku || errors.site || errors.contractor) return;
 
+    // ===== SKU EXISTENCE CHECK =====
+    setAddSkuLoading(true);  // Show loading state for existence check
+    try {
+      const skuExists = await checkSkuExists(addSku.trim());
+      if (skuExists) {
+        setAddSkuErrors({ ...errors, sku: `SKU code '${addSku.trim()}' already exists in the system` });
+        setAddSkuLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking SKU existence:', error);
+      // Continue with submission even if check fails
+    }
+
     // ===== API CALL PREPARATION =====
-    setAddSkuLoading(true);  // Show loading state
     try {
       console.log('componentsToSave before API call:', componentsToSave);
       console.log('componentsToSave length:', componentsToSave.length);
-      const result = await apiPost(`/sku-details/add?skutype=${encodeURIComponent(addSkuType)}`, {
+      // Only send skutype if checkbox is checked (user wants reference SKU)
+      const skutypeParam = showSkuTypeSection ? addSkuType : '';
+      const skutypeBody = showSkuTypeSection ? addSkuType : null;
+      
+      const result = await apiPost(`/sku-details/add?skutype=${encodeURIComponent(skutypeParam)}&bulk_expert=${encodeURIComponent(addSkuDropdownValue)}`, {
           sku_data: {
             sku_code: addSku,
             sku_description: addSkuDescription,
@@ -1374,7 +1416,8 @@ const CmSkuDetail: React.FC = () => {
             sku_reference: addSkuReference,
             period: addSkuPeriod,
             formulation_reference: addSkuFormulationReference,
-            skutype: addSkuType  // Also send in JSON body as backup
+            skutype: skutypeBody,  // Only send if checkbox is checked
+            bulk_expert: addSkuDropdownValue  // Add bulk_expert to sku_data as well
           },
           components: componentsToSave.map(component => ({
             component_code: component.component_code,
@@ -1419,7 +1462,8 @@ const CmSkuDetail: React.FC = () => {
           sku_reference: addSkuReference,
           period: addSkuPeriod,
           formulation_reference: addSkuFormulationReference,
-          skutype: addSkuType
+          skutype: skutypeBody,
+          bulk_expert: addSkuDropdownValue
         },
         components: componentsToSave.map(component => ({
           component_code: component.component_code,
@@ -1457,7 +1501,16 @@ const CmSkuDetail: React.FC = () => {
       
       if (!result.success) {
         // Server-side validation error
-        setAddSkuErrors({ ...errors, server: result.message || 'Server validation failed' });
+        console.error('Add SKU API Error:', result);
+        const errorMessage = result.message || result.error || 'Server validation failed';
+        
+        // Check if it's a SKU already exists error
+        if (errorMessage.toLowerCase().includes('already exists') || errorMessage.toLowerCase().includes('sku code')) {
+          setAddSkuErrors({ ...errors, sku: errorMessage });
+        } else {
+          setAddSkuErrors({ ...errors, server: errorMessage });
+        }
+        
         setAddSkuLoading(false);
         return;
       }
@@ -3282,7 +3335,12 @@ const CmSkuDetail: React.FC = () => {
                       <div style={{ display: 'flex', marginBottom: 8, gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <p><strong>Reference SKU: </strong> {sku.sku_reference}</p>
-                          <p><strong>SKU Type: </strong> {sku.skutype || 'internal'}</p>
+                          {sku.skutype && (
+                            <p><strong>SKU Type: </strong> {sku.skutype}</p>
+                          )}
+                          {sku.bulk_expert && (
+                            <p><strong>Bulk/Expert: </strong> {sku.bulk_expert}</p>
+                          )}
                         </div>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <button className="add-sku-btn btnCommon btnGreen filterButtons"
@@ -3933,7 +3991,12 @@ const CmSkuDetail: React.FC = () => {
                               <div style={{ display: 'flex', marginBottom: 8, gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                   <p><strong>Reference SKU: </strong> {sku.sku_reference}</p>
-                                  <p><strong>SKU Type: </strong> {sku.skutype || 'internal'}</p>
+                                  {sku.skutype && (
+                                    <p><strong>SKU Type: </strong> {sku.skutype}</p>
+                                  )}
+                                  {sku.bulk_expert && (
+                                    <p><strong>Bulk/Expert: </strong> {sku.bulk_expert}</p>
+                                  )}
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                   <button
@@ -4784,8 +4847,8 @@ const CmSkuDetail: React.FC = () => {
                           }}
                         >
                           <option value="">Select an option</option>
-                          <option value="first">first</option>
-                          <option value="second">second</option>
+                          <option value="bulk">Bulk</option>
+                          <option value="expert">Expert</option>
                         </select>
                         <i 
                           className="ri-arrow-down-s-line" 
@@ -5537,8 +5600,8 @@ const CmSkuDetail: React.FC = () => {
                           }}
                         >
                           <option value="">Select an option</option>
-                          <option value="first">first</option>
-                          <option value="second">second</option>
+                          <option value="bulk">Bulk</option>
+                          <option value="expert">Expert</option>
                         </select>
                         <i 
                           className="ri-arrow-down-s-line" 
