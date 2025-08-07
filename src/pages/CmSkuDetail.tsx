@@ -45,6 +45,60 @@ interface ApiResponse {
   data: SkuData[];               // Array of SKU data objects
 }
 
+/**
+ * Master Data Response Interface
+ * Defines the structure of the consolidated master data API response
+ */
+interface MasterDataResponse {
+  success: boolean;
+  message: string;
+  data: {
+    periods?: Array<{id: number, period: string, is_active: boolean}>;
+    regions?: Array<{id: number, name: string}>;
+    material_types?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+    component_uoms?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+    packaging_materials?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+    packaging_levels?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+    component_base_uoms?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+    total_count?: {
+      periods: number;
+      regions: number;
+      material_types: number;
+      component_uoms: number;
+      packaging_materials: number;
+      packaging_levels: number;
+      component_base_uoms: number;
+    };
+  };
+}
+
+/**
+ * Consolidated Dashboard Response Interface
+ * Defines the structure of the new consolidated API response
+ * Used for type safety when handling the cm-dashboard endpoint
+ */
+interface DashboardResponse {
+  success: boolean;
+  message: string;
+  data: {
+    skus?: SkuData[];
+    descriptions?: Array<{sku_description: string, cm_code: string}>;
+    references?: Array<{sku_code: string, sku_description: string}>;
+    audit_logs?: Array<{action: string, timestamp: string, details: any}>;
+    component_data?: {components_with_evidence: Array<{component_details: any, evidence_files: any[]}>};
+    total_components?: number;
+    total_skus?: number;
+    master_data?: {
+      periods?: Array<{id: number, period: string, is_active: boolean}>;
+      material_types?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+      component_uoms?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+      packaging_materials?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+      packaging_levels?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+      component_base_uoms?: Array<{id: number, item_name: string, item_order: number, is_active: boolean}>;
+    };
+  };
+}
+
 // Add mock component data for table rows (replace with real API data as needed)
 const initialComponentRows = [
   {
@@ -315,31 +369,257 @@ const CmSkuDetail: React.FC = () => {
   };
 
   /**
-   * fetchSkuDetails Function
-   * Fetches SKU data from the API for the current Component Master
-   * This is the main data fetching function that loads all SKU information
-   * Called on component mount and after add/edit operations
+   * fetchDashboardData Function (UNIVERSAL - Single API for all GET operations)
+   * Fetches any data from the consolidated API based on parameters
+   * This replaces ALL individual GET API calls with a single call
+   * 
+   * @param includeParams - Array of data types to include
+   * @param additionalParams - Additional parameters like period, search, component_id, etc.
    */
-  const fetchSkuDetails = async () => {
+  const fetchDashboardData = async (
+    includeParams: string[] = ['skus', 'descriptions', 'references', 'audit', 'master-data'],
+    additionalParams: Record<string, string> = {}
+  ) => {
     if (!cmCode) return;  // Exit if no Component Master code is available
     
     try {
       setLoading(true);           // Show loading state
       setError(null);             // Clear any previous errors
       
-      // Make API call to fetch SKU details for the Component Master
-      const result: ApiResponse = await apiGet(`/sku-details/${cmCode}`);
-      if (result.success) {
-        setSkuData(result.data);  // Update SKU data state with fetched data
+      // Build query parameters
+      const params = new URLSearchParams({
+        include: includeParams.join(',')
+      });
+      
+      // Add additional parameters
+      Object.entries(additionalParams).forEach(([key, value]) => {
+        if (value) {
+          params.append(key, value);
+        }
+      });
+      
+      // Add period from selected years if not provided
+      if (!additionalParams.period && selectedYears.length > 0) {
+        params.append('period', selectedYears[0]);
+      }
+      
+      console.log('Fetching data from universal API:', `/cm-dashboard/${cmCode}?${params}`);
+      const result: DashboardResponse = await apiGet(`/cm-dashboard/${cmCode}?${params}`);
+      
+      if (result.success && result.data) {
+        console.log('Universal API data received:', result.data);
+        
+        // Update all states from consolidated response
+        if (result.data.skus) {
+          setSkuData(result.data.skus);
+          console.log('SKUs loaded from universal API:', result.data.skus.length);
+        }
+        
+        if (result.data.descriptions) {
+          const descriptionsWithLabels = result.data.descriptions
+            .filter((item: any) => item.sku_description && item.cm_code)
+            .map((item: any) => ({
+              value: `${item.cm_code} - ${item.sku_description}`,
+              label: `${item.cm_code} - ${item.sku_description}`
+            }));
+          setSkuDescriptions(descriptionsWithLabels);
+          console.log('SKU descriptions loaded from universal API:', descriptionsWithLabels.length);
+        }
+        
+        if (result.data.master_data) {
+          // Process periods from consolidated API and sort by year in descending order
+          if (result.data.master_data.periods) {
+            const processedYears = result.data.master_data.periods
+              .filter((period: any) => period && period.id && period.period)
+              .map((period: any) => ({
+                id: String(period.id),
+                period: String(period.period)
+              }))
+              .sort((a, b) => {
+                // Extract year from period string (e.g., "July 2025 to June 2026" -> 2025)
+                const extractYear = (periodText: string) => {
+                  const yearMatch = periodText.match(/\b(20\d{2})\b/);
+                  return yearMatch ? parseInt(yearMatch[1]) : 0;
+                };
+                
+                const yearA = extractYear(a.period);
+                const yearB = extractYear(b.period);
+                
+                // Sort in descending order (latest year first)
+                return yearB - yearA;
+              });
+            
+            setYears(processedYears);
+            console.log('Years loaded from universal API:', processedYears.length);
+            
+            // Automatically select the latest year (first item after sorting)
+            if (processedYears.length > 0) {
+              const latestPeriod = processedYears[0]; // First item is the latest year
+              console.log('Automatically selecting latest period:', latestPeriod.period);
+              
+              setSelectedYears([latestPeriod.id]);
+              // Apply filter automatically for the latest period
+              setAppliedFilters(prev => ({ ...prev, years: [latestPeriod.id] }));
+            }
+          }
+          
+          // Set master data for other components
+          if (result.data.master_data.material_types) {
+            setMaterialTypes(result.data.master_data.material_types);
+          }
+          if (result.data.master_data.component_uoms) {
+            setUnitOfMeasureOptions(result.data.master_data.component_uoms);
+          }
+          if (result.data.master_data.packaging_levels) {
+            setPackagingLevelOptions(result.data.master_data.packaging_levels);
+          }
+          if (result.data.master_data.packaging_materials) {
+            setPackagingMaterialOptions(result.data.master_data.packaging_materials);
+          }
+          if (result.data.master_data.component_base_uoms) {
+            setComponentBaseUoms(result.data.master_data.component_base_uoms);
+          }
+        }
+        
+        console.log('All data loaded successfully from universal API');
+        return result.data; // Return data for further processing
       } else {
-        throw new Error('API returned unsuccessful response');
+        throw new Error('Universal API returned unsuccessful response');
       }
     } catch (err) {
       // Handle and display errors
-      setError(err instanceof Error ? err.message : 'Failed to fetch SKU details');
-      console.error('Error fetching SKU details:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      console.error('Error fetching data from universal API:', err);
+      
+      // Fallback to individual API calls if universal API fails
+      console.log('Falling back to individual API calls...');
+      await fetchSkuDetails();
+      return null;
     } finally {
       setLoading(false);  // Hide loading state regardless of success/failure
+    }
+  };
+
+
+
+  /**
+   * fetchSkuDetails Function (UNIVERSAL API)
+   * Fetches SKU data using the universal API
+   * Replaces: GET /sku-details/:cmCode
+   */
+  const fetchSkuDetails = async () => {
+    if (!cmCode) return;
+    
+    try {
+      const data = await fetchDashboardData(['skus']);
+      if (data && data.skus) {
+        setSkuData(data.skus);
+        console.log('SKU details loaded from universal API');
+      }
+    } catch (err) {
+      console.error('Error fetching SKU details:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch SKU details');
+    }
+  };
+
+  /**
+   * fetchSkuDescriptions Function (UNIVERSAL API)
+   * Fetches SKU descriptions using the universal API
+   * Replaces: GET /sku-descriptions
+   */
+  const fetchSkuDescriptions = async () => {
+    if (!cmCode) return;
+    
+    try {
+      const data = await fetchDashboardData(['descriptions']);
+      if (data && data.descriptions) {
+        const descriptionsWithLabels = data.descriptions
+          .filter((item: any) => item.sku_description && item.cm_code)
+          .map((item: any) => ({
+            value: `${item.cm_code} - ${item.sku_description}`,
+            label: `${item.cm_code} - ${item.sku_description}`
+          }));
+        setSkuDescriptions(descriptionsWithLabels);
+        console.log('SKU descriptions loaded from universal API');
+      }
+    } catch (err) {
+      console.error('Error fetching SKU descriptions:', err);
+    }
+  };
+
+  /**
+   * fetchMasterData Function (UNIVERSAL API)
+   * Fetches master data using the universal API
+   * Replaces: GET /get-masterdata
+   */
+  const fetchMasterData = async () => {
+    if (!cmCode) return;
+    
+    try {
+      const data = await fetchDashboardData(['master-data']);
+      if (data && data.master_data) {
+        // Set master data for components
+        if (data.master_data.material_types) {
+          setMaterialTypes(data.master_data.material_types);
+        }
+        if (data.master_data.component_uoms) {
+          setUnitOfMeasureOptions(data.master_data.component_uoms);
+        }
+        if (data.master_data.packaging_levels) {
+          setPackagingLevelOptions(data.master_data.packaging_levels);
+        }
+        if (data.master_data.packaging_materials) {
+          setPackagingMaterialOptions(data.master_data.packaging_materials);
+        }
+        if (data.master_data.component_base_uoms) {
+          setComponentBaseUoms(data.master_data.component_base_uoms);
+        }
+        console.log('Master data loaded from universal API');
+      }
+    } catch (err) {
+      console.error('Error fetching master data:', err);
+    }
+  };
+
+  /**
+   * fetchComponentAuditLog Function (UNIVERSAL API)
+   * Fetches component audit log using the universal API
+   * Replaces: GET /component-audit-log/:componentId
+   */
+  const fetchComponentAuditLog = async (componentId: number) => {
+    if (!cmCode) return [];
+    
+    try {
+      const data = await fetchDashboardData(['audit'], { component_id: componentId.toString() });
+      if (data && data.audit_logs) {
+        console.log('Component audit log loaded from universal API');
+        return data.audit_logs;
+      }
+      return [];
+    } catch (err) {
+      console.error('Error fetching component audit log:', err);
+      return [];
+    }
+  };
+
+  /**
+   * fetchComponentDataByCodeUniversal Function (UNIVERSAL API)
+   * Fetches component data by code using the universal API
+   * Replaces: GET /get-component-code-data?component_code=:code
+   */
+  const fetchComponentDataByCodeUniversal = async (componentCode: string) => {
+    if (!cmCode) return null;
+    
+    try {
+      const data = await fetchDashboardData(['component_data'], { component_code: componentCode });
+      if (data && data.component_data) {
+        console.log('Component data loaded from universal API');
+        return data.component_data;
+      }
+      return null;
+    } catch (err) {
+      console.error('Error fetching component data by code:', err);
+      return null;
     }
   };
 
@@ -351,7 +631,7 @@ const CmSkuDetail: React.FC = () => {
   useEffect(() => {
     setPageLoadStartTime(Date.now());     // Record page load start time
     setMinimumLoaderComplete(false);      // Reset minimum loader state
-    fetchSkuDetails();                   // Fetch initial SKU data
+    fetchDashboardData();                 // Fetch consolidated dashboard data
     // eslint-disable-next-line
   }, [cmCode]);
 
@@ -397,92 +677,50 @@ const CmSkuDetail: React.FC = () => {
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const result = await apiGet('/sku-details-active-years');
+        console.log('Fetching years from consolidated master data');
+        const result: MasterDataResponse = await apiGet('/get-masterdata');
         
-        // Handle different response formats
-        let yearsData: any[] = [];
-        if (Array.isArray(result)) {
-          yearsData = result;
-        } else if (result.years && Array.isArray(result.years)) {
-          yearsData = result.years;
-        } else if (result.data && Array.isArray(result.data)) {
-          yearsData = result.data;
-        }
-        
-        // Process years with id and period
-        const processedYears = yearsData
-          .map((year: any) => {
-            if (typeof year === 'string' || typeof year === 'number') {
-              return { id: String(year), period: String(year) };
-            } else if (year && typeof year === 'object' && year.period) {
-              return { id: String(year.id || year.period), period: String(year.period) };
-            } else if (year && typeof year === 'object' && year.id) {
-              return { id: String(year.id), period: String(year.period || year.id) };
-            } else {
-              return null;
-            }
-          })
-          .filter((year: any) => year && year.id && year.period) as Array<{id: string, period: string}>;
-        setYears(processedYears);
-        
-        // Set current period as default if available
-        const getCurrentPeriod = () => {
-          const now = new Date();
-          const currentMonth = now.getMonth() + 1; // 1-12
-          const currentYear = now.getFullYear();
-          
-          // Find the period that contains the current date
-          // For periods like "July 2025 to June 2026", we need to check if current date falls within
-          for (const yearOption of processedYears) {
-            const periodText = yearOption.period;
-            
-            // Try to parse period text like "July 2025 to June 2026"
-            const periodMatch = periodText.match(/(\w+)\s+(\d{4})\s+to\s+(\w+)\s+(\d{4})/i);
-            if (periodMatch) {
-              const startMonth = periodMatch[1];
-              const startYear = parseInt(periodMatch[2]);
-              const endMonth = periodMatch[3];
-              const endYear = parseInt(periodMatch[4]);
-              
-              // Convert month names to numbers
-              const monthNames: { [key: string]: number } = {
-                'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
-                'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
+        if (result.success && result.data && result.data.periods) {
+          // Process periods from consolidated API and sort by year in descending order
+          const processedYears = result.data.periods
+            .filter((period: any) => period && period.id && period.period)
+            .map((period: any) => ({
+              id: String(period.id),
+              period: String(period.period)
+            }))
+            .sort((a, b) => {
+              // Extract year from period string (e.g., "July 2025 to June 2026" -> 2025)
+              const extractYear = (periodText: string) => {
+                const yearMatch = periodText.match(/\b(20\d{2})\b/);
+                return yearMatch ? parseInt(yearMatch[1]) : 0;
               };
               
-              const startMonthNum = monthNames[startMonth.toLowerCase()];
-              const endMonthNum = monthNames[endMonth.toLowerCase()];
+              const yearA = extractYear(a.period);
+              const yearB = extractYear(b.period);
               
-              if (startMonthNum && endMonthNum) {
-                // Check if current date falls within this period
-                const currentDate = new Date(currentYear, currentMonth - 1, 1);
-                const periodStart = new Date(startYear, startMonthNum - 1, 1);
-                const periodEnd = new Date(endYear, endMonthNum, 0); // Last day of end month
-                
-                if (currentDate >= periodStart && currentDate <= periodEnd) {
-                  return yearOption;
-                }
-              }
-            }
-            
-            // Fallback: check if period contains current year
-            if (periodText.includes(currentYear.toString())) {
-              return yearOption;
-            }
-          }
+              // Sort in descending order (latest year first)
+              return yearB - yearA;
+            }) as Array<{id: string, period: string}>;
           
-          // If no specific period found, try to find by current year
-          return processedYears.find(year => year.period === currentYear.toString() || year.id === currentYear.toString());
-        };
-        
-        const currentPeriodOption = getCurrentPeriod();
-        if (currentPeriodOption) {
-          setSelectedYears([currentPeriodOption.id]);
-          // Apply filter automatically for current period
-          setAppliedFilters(prev => ({ ...prev, years: [currentPeriodOption.id] }));
+          setYears(processedYears);
+          console.log('Years loaded from consolidated API (sorted by desc):', processedYears.length);
+          console.log('Sorted periods:', processedYears.map(p => p.period));
+          
+          // Automatically select the latest year (first item after sorting)
+          if (processedYears.length > 0) {
+            const latestPeriod = processedYears[0]; // First item is the latest year
+            console.log('Automatically selecting latest period:', latestPeriod.period);
+            
+            setSelectedYears([latestPeriod.id]);
+            // Apply filter automatically for the latest period
+            setAppliedFilters(prev => ({ ...prev, years: [latestPeriod.id] }));
+          }
+        } else {
+          console.error('No periods data in master data response');
+          setYears([]);
         }
       } catch (err) {
-        console.error('Error fetching years:', err);
+        console.error('Error fetching years from consolidated API:', err);
         setYears([]);
       }
     };
@@ -492,59 +730,13 @@ const CmSkuDetail: React.FC = () => {
   // Additional useEffect to handle current period selection when years are loaded
   useEffect(() => {
     if (years.length > 0 && selectedYears.length === 0) {
-      const getCurrentPeriod = () => {
-        const now = new Date();
-        const currentMonth = now.getMonth() + 1; // 1-12
-        const currentYear = now.getFullYear();
-        
-        // Find the period that contains the current date
-        for (const yearOption of years) {
-          const periodText = yearOption.period;
-          
-          // Try to parse period text like "July 2025 to June 2026"
-          const periodMatch = periodText.match(/(\w+)\s+(\d{4})\s+to\s+(\w+)\s+(\d{4})/i);
-          if (periodMatch) {
-            const startMonth = periodMatch[1];
-            const startYear = parseInt(periodMatch[2]);
-            const endMonth = periodMatch[3];
-            const endYear = parseInt(periodMatch[4]);
-            
-            // Convert month names to numbers
-            const monthNames: { [key: string]: number } = {
-              'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
-              'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12
-            };
-            
-            const startMonthNum = monthNames[startMonth.toLowerCase()];
-            const endMonthNum = monthNames[endMonth.toLowerCase()];
-            
-            if (startMonthNum && endMonthNum) {
-              // Check if current date falls within this period
-              const currentDate = new Date(currentYear, currentMonth - 1, 1);
-              const periodStart = new Date(startYear, startMonthNum - 1, 1);
-              const periodEnd = new Date(endYear, endMonthNum, 0); // Last day of end month
-              
-              if (currentDate >= periodStart && currentDate <= periodEnd) {
-                return yearOption;
-              }
-            }
-          }
-          
-          // Fallback: check if period contains current year
-          if (periodText.includes(currentYear.toString())) {
-            return yearOption;
-          }
-        }
-        
-        // If no specific period found, try to find by current year
-        return years.find(year => year.period === currentYear.toString() || year.id === currentYear.toString());
-      };
+      // Automatically select the latest year (first item after sorting)
+      const latestPeriod = years[0]; // First item is the latest year after sorting
+      console.log('Auto-selecting latest period from useEffect:', latestPeriod.period);
       
-      const currentPeriodOption = getCurrentPeriod();
-      if (currentPeriodOption) {
-        setSelectedYears([currentPeriodOption.id]);
-        setAppliedFilters(prev => ({ ...prev, years: [currentPeriodOption.id] }));
-      }
+      setSelectedYears([latestPeriod.id]);
+      // Apply filter automatically for the latest period
+      setAppliedFilters(prev => ({ ...prev, years: [latestPeriod.id] }));
     }
   }, [years, selectedYears.length]);
 
@@ -555,17 +747,20 @@ const CmSkuDetail: React.FC = () => {
   useEffect(() => {
     const fetchDescriptions = async () => {
       try {
-        const result = await apiGet('/sku-descriptions');
-        const descriptionsData = result.data || [];
-        // Create combined cm_code - sku_description format
-        const descriptionsWithLabels = descriptionsData
-          .filter((item: any) => item.sku_description && item.cm_code)
-          .map((item: any) => ({
-            value: `${item.cm_code} - ${item.sku_description}`,
-            label: `${item.cm_code} - ${item.sku_description}`
-          }));
-        setSkuDescriptions(descriptionsWithLabels);
+        // Use Universal API instead of separate /sku-descriptions
+        const data = await fetchDashboardData(['descriptions']);
+        if (data && data.descriptions) {
+          const descriptionsWithLabels = data.descriptions
+            .filter((item: any) => item.sku_description && item.cm_code)
+            .map((item: any) => ({
+              value: `${item.cm_code} - ${item.sku_description}`,
+              label: `${item.cm_code} - ${item.sku_description}`
+            }));
+          setSkuDescriptions(descriptionsWithLabels);
+          console.log('SKU descriptions loaded from Universal API');
+        }
       } catch (err) {
+        console.error('Error fetching SKU descriptions:', err);
         setSkuDescriptions([]);
       }
     };
@@ -598,93 +793,100 @@ const CmSkuDetail: React.FC = () => {
   const [selectedComponentCodes, setSelectedComponentCodes] = useState<string[]>([]);
 
   // Add state for material types
-  const [materialTypes, setMaterialTypes] = useState<Array<{id: number, item_name: string, item_order: number, is_active: boolean, created_by: string, created_date: string}>>([]);
-
-  // Fetch material types from API
-  useEffect(() => {
-    const fetchMaterialTypes = async () => {
-      try {
-        const result = await apiGet('/component-master-material-type');
-        if (result.success) {
-          setMaterialTypes(result.data);
-        }
-      } catch (error) {
-        console.error('Error fetching material types:', error);
-      }
-    };
-
-    fetchMaterialTypes();
-  }, []);
+  const [materialTypes, setMaterialTypes] = useState<Array<{id: number, item_name: string, item_order: number, is_active: boolean}>>([]);
 
   // Add state for unitOfMeasureOptions
-  const [unitOfMeasureOptions, setUnitOfMeasureOptions] = useState<{id: number, item_name: string}[]>([]);
-
-  useEffect(() => {
-    const fetchUnitOfMeasureOptions = async () => {
-      try {
-        const result = await apiGet('/master-component-umo');
-        if (result.success && Array.isArray(result.data)) {
-          setUnitOfMeasureOptions(result.data);
-        } else {
-          setUnitOfMeasureOptions([]);
-        }
-      } catch (err) {
-        console.error('Error fetching UOM options:', err);
-        setUnitOfMeasureOptions([]);
-      }
-    };
-    fetchUnitOfMeasureOptions();
-  }, []);
+  const [unitOfMeasureOptions, setUnitOfMeasureOptions] = useState<{id: number, item_name: string, item_order: number, is_active: boolean}[]>([]);
 
   // Add state for packagingLevelOptions
-  const [packagingLevelOptions, setPackagingLevelOptions] = useState<{id: number, item_name: string}[]>([]);
-
-  useEffect(() => {
-    const fetchPackagingLevelOptions = async () => {
-      try {
-        const result = await apiGet('/master-component-packaging-level');
-        if (result.success && Array.isArray(result.data)) {
-          setPackagingLevelOptions(result.data);
-        } else {
-          setPackagingLevelOptions([]);
-        }
-      } catch (err) {
-        setPackagingLevelOptions([]);
-      }
-    };
-    fetchPackagingLevelOptions();
-  }, []);
+  const [packagingLevelOptions, setPackagingLevelOptions] = useState<{id: number, item_name: string, item_order: number, is_active: boolean}[]>([]);
 
   // Add state for packagingMaterialOptions
-  const [packagingMaterialOptions, setPackagingMaterialOptions] = useState<{id: number, item_name: string}[]>([]);
+  const [packagingMaterialOptions, setPackagingMaterialOptions] = useState<{id: number, item_name: string, item_order: number, is_active: boolean}[]>([]);
 
+  // Add state for component base UOMs
+  const [componentBaseUoms, setComponentBaseUoms] = useState<{id: number, item_name: string, item_order: number, is_active: boolean}[]>([]);
+
+  // Consolidated master data fetch using Universal API
   useEffect(() => {
-    const fetchPackagingMaterialOptions = async () => {
+    const fetchMasterData = async () => {
       try {
-        const response = await apiGet('/master-component-packaging-material');
-        const result = await response.json();
-        if (result.success && Array.isArray(result.data)) {
-          setPackagingMaterialOptions(result.data);
+        console.log('Fetching master data from Universal API');
+        const data = await fetchDashboardData(['master-data']);
+        
+        if (data && data.master_data) {
+          // Set material types
+          if (data.master_data.material_types && Array.isArray(data.master_data.material_types)) {
+            setMaterialTypes(data.master_data.material_types);
+            console.log('Material types loaded from Universal API:', data.master_data.material_types.length);
+          }
+          
+          // Set unit of measure options
+          if (data.master_data.component_uoms && Array.isArray(data.master_data.component_uoms)) {
+            setUnitOfMeasureOptions(data.master_data.component_uoms);
+            console.log('Component UOMs loaded from Universal API:', data.master_data.component_uoms.length);
+          }
+          
+          // Set packaging level options
+          if (data.master_data.packaging_levels && Array.isArray(data.master_data.packaging_levels)) {
+            setPackagingLevelOptions(data.master_data.packaging_levels);
+            console.log('Packaging levels loaded from Universal API:', data.master_data.packaging_levels.length);
+          }
+          
+          // Set packaging material options
+          if (data.master_data.packaging_materials && Array.isArray(data.master_data.packaging_materials)) {
+            setPackagingMaterialOptions(data.master_data.packaging_materials);
+            console.log('Packaging materials loaded from Universal API:', data.master_data.packaging_materials.length);
+          }
+          
+          // Set component base UOMs
+          if (data.master_data.component_base_uoms && Array.isArray(data.master_data.component_base_uoms)) {
+            setComponentBaseUoms(data.master_data.component_base_uoms);
+            console.log('Component base UOMs loaded from Universal API:', data.master_data.component_base_uoms.length);
+          }
+          
+          console.log('All master data loaded successfully from Universal API');
         } else {
+          console.error('Universal API returned no master data');
+          // Set empty arrays as fallback
+          setMaterialTypes([]);
+          setUnitOfMeasureOptions([]);
+          setPackagingLevelOptions([]);
           setPackagingMaterialOptions([]);
+          setComponentBaseUoms([]);
         }
-      } catch (err) {
+      } catch (error) {
+        console.error('Error fetching master data from Universal API:', error);
+        // Set empty arrays as fallback
+        setMaterialTypes([]);
+        setUnitOfMeasureOptions([]);
+        setPackagingLevelOptions([]);
         setPackagingMaterialOptions([]);
+        setComponentBaseUoms([]);
       }
     };
-    fetchPackagingMaterialOptions();
+
+    fetchMasterData();
   }, []);
 
-  // Handler to update is_active status
+  // Handler to update is_active status using Universal API
   const handleIsActiveChange = async (skuId: number, currentStatus: boolean) => {
     try {
       // Optimistically update UI
       setSkuData(prev => prev.map(sku => sku.id === skuId ? { ...sku, is_active: !currentStatus } : sku));
-      // Send PATCH request
-      const result = await apiPatch(`/sku-details/${skuId}/is-active`, { is_active: !currentStatus });
+      
+      // Send PATCH request to Universal API
+      const result = await apiPatch('/toggle-status', { 
+        type: 'sku', 
+        id: skuId, 
+        is_active: !currentStatus 
+      });
+      
       if (!result.success) {
         throw new Error('API returned unsuccessful response for status update');
       }
+      
+      console.log('✅ SKU status updated successfully via Universal API');
     } catch (err) {
       // If error, revert UI change
       setSkuData(prev => prev.map(sku => sku.id === skuId ? { ...sku, is_active: currentStatus } : sku));
@@ -858,10 +1060,11 @@ const CmSkuDetail: React.FC = () => {
     try {
       console.log('🔍 Fetching audit logs for component:', component.id);
       
-                      const result = await apiGet(`/component-audit-log/${component.id}`);
-        
-        console.log('✅ Audit logs received:', result);
-        const auditData = result.data || result.history || [];
+      // Use original API for component audit logs (keeping it simple)
+      const result = await apiGet(`/component-audit-log/${component.id}`);
+      
+      console.log('✅ Audit logs received:', result);
+      const auditData = result.data || result.history || [];
       setComponentHistory(auditData);
       setTotalItems(auditData.length);
     } catch (error) {
@@ -1113,13 +1316,42 @@ const CmSkuDetail: React.FC = () => {
   const [componentsToSave, setComponentsToSave] = useState<any[]>([]); // Object to store data for API
 
   /**
-   * fetchReferenceSkuOptions Function
-   * Fetches SKUs for the Reference SKU dropdown based on selected 3PM and period
-   * Uses the GET /getskureference/:period/:cm_code API endpoint
+   * fetchReferenceSkuOptions Function (CONSOLIDATED)
+   * Fetches SKUs for the Reference SKU dropdown using consolidated API
+   * Replaces: GET /getskureference/:period/:cm_code API endpoint
    */
   const fetchReferenceSkuOptions = async (period: string, cmCode: string) => {
     try {
       setReferenceSkuLoading(true);
+      
+      // Use consolidated API first
+      const params = new URLSearchParams({
+        include: 'references',
+        period: period
+      });
+      
+      const result: DashboardResponse = await apiGet(`/cm-dashboard/${cmCode}?${params}`);
+      
+      if (result.success && result.data && result.data.references) {
+        // Format SKU data for dropdown options with period name
+        const options = result.data.references.map((sku: any) => {
+          // Get period name from the years array
+          const periodName = years.find(year => year.id === sku.period)?.period || sku.period;
+          return {
+            value: sku.sku_code,
+            label: `${sku.sku_code} (${periodName})`
+          };
+        });
+        
+        setReferenceSkuOptions(options);
+        console.log('Reference SKU options loaded from consolidated API:', options.length);
+      } else {
+        throw new Error('No reference SKU options found in consolidated API');
+      }
+    } catch (error) {
+      console.error('Error fetching reference SKU options from consolidated API, falling back to original:', error);
+      
+      // Fallback to original API
       const result = await apiGet(`/getskureference/${period}/${cmCode}`);
       
       if (result.success && result.data) {
@@ -1134,30 +1366,37 @@ const CmSkuDetail: React.FC = () => {
         });
         
         setReferenceSkuOptions(options);
-      }
-    } catch (error) {
-      console.error('Error fetching reference SKU options:', error);
+      } else {
       setReferenceSkuOptions([]);
+      }
     } finally {
       setReferenceSkuLoading(false);
     }
   };
 
   /**
-   * fetchThreePmOptions Function
-   * Fetches unique and active cm_code values from the SKU details API
+   * fetchThreePmOptions Function (CONSOLIDATED)
+   * Fetches unique and active cm_code values using consolidated API
    * Used to populate the 3PM dropdown in the Add SKU modal
    */
   const fetchThreePmOptions = async (currentCmCode?: string) => {
     try {
       setThreePmLoading(true);
-      const result = await apiGet('/sku-details');
       
-      if (result.success && result.data) {
+      // Use consolidated API first
+      const params = new URLSearchParams({
+        include: 'skus'
+      });
+      
+      const result: DashboardResponse = await apiGet(`/cm-dashboard/${cmCode}?${params}`);
+      
+      if (result.success && result.data && result.data.skus) {
+        console.log('3PM options loaded from consolidated API:', result.data.skus.length);
+        
         // Extract unique cm_code values from active SKUs
         const uniqueCmCodes = new Map<string, {cm_code: string, cm_description?: string}>();
         
-        result.data.forEach((sku: SkuData) => {
+        result.data.skus.forEach((sku: SkuData) => {
           if (sku.is_active && sku.cm_code) {
             uniqueCmCodes.set(sku.cm_code, {
               cm_code: sku.cm_code,
@@ -1177,20 +1416,53 @@ const CmSkuDetail: React.FC = () => {
         // Convert Map to Array and sort by cm_code
         const options = Array.from(uniqueCmCodes.values()).sort((a, b) => a.cm_code.localeCompare(b.cm_code));
         setThreePmOptions(options);
+      } else {
+        throw new Error('No SKU data found in consolidated API');
       }
     } catch (error) {
-      console.error('Error fetching 3PM options:', error);
-      setThreePmOptions([]);
+      console.error('Error fetching 3PM options from consolidated API, falling back to original:', error);
+      
+      // Fallback to Universal API
+      const data = await fetchDashboardData(['skus']);
+      
+      if (data && data.skus) {
+        // Extract unique cm_code values from active SKUs
+        const uniqueCmCodes = new Map<string, {cm_code: string, cm_description?: string}>();
+        
+        data.skus.forEach((sku: SkuData) => {
+          if (sku.is_active && sku.cm_code) {
+            uniqueCmCodes.set(sku.cm_code, {
+              cm_code: sku.cm_code,
+              cm_description: sku.cm_description || undefined
+            });
+          }
+        });
+        
+        // If we have a current cm_code, ensure it's included in the options
+        if (currentCmCode) {
+          uniqueCmCodes.set(currentCmCode, {
+            cm_code: currentCmCode,
+            cm_description: undefined
+          });
+        }
+        
+        // Convert Map to Array and sort by cm_code
+        const options = Array.from(uniqueCmCodes.values()).sort((a, b) => a.cm_code.localeCompare(b.cm_code));
+        setThreePmOptions(options);
+        console.log('3PM options loaded from Universal API fallback');
+      } else {
+        setThreePmOptions([]);
+      }
     } finally {
       setThreePmLoading(false);
     }
   };
 
   /**
-   * searchSkuReference Function
+   * searchSkuReference Function (CONSOLIDATED)
    * Searches for external SKU references when user types in the Reference SKU field
    * This function is called when SKU Type is set to 'external'
-   * Fetches data from GET /skureference/:sku_reference API endpoint
+   * Uses consolidated API: GET /cm-dashboard/:cmCode with search parameter
    * 
    * @param searchTerm - The search term entered by the user
    */
@@ -1205,7 +1477,49 @@ const CmSkuDetail: React.FC = () => {
 
     setSkuSearchLoading(true);  // Show loading state
     try {
-      // Make API call to search for SKU references
+      // Use consolidated API first
+      const params = new URLSearchParams({
+        include: 'references',
+        search: searchTerm
+      });
+      
+      const result: DashboardResponse = await apiGet(`/cm-dashboard/${cmCode}?${params}`);
+      
+      if (result.success && result.data && result.data.references) {
+        console.log('SKU reference search results from consolidated API:', result.data.references.length);
+        
+        // Map the API response to a more usable format
+        // This handles the nested structure with sku_info and components
+        const mappedResults = result.data.references.map((item: any) => {
+          const skuInfo = item.sku_info || item;           // Main SKU information
+          const components = item.components || [];  // Associated components
+          
+          // Extract unique SKU codes from components for display
+          const componentSkuCodes = components.map((comp: any) => comp.sku_code).filter((code: string) => code);
+          const uniqueSkuCodes = Array.from(new Set(componentSkuCodes.flatMap((code: string) => code.split(','))));
+          
+          return {
+            ...skuInfo,
+            period_name: getPeriodTextFromId(skuInfo.period) || `Period ${skuInfo.period}`,  // Convert period ID to name
+            display_text: `${skuInfo.sku_code} (${getPeriodTextFromId(skuInfo.period) || `Period ${skuInfo.period}`})`,  // User-friendly display text
+            components_count: components.length,     // Number of components
+            total_components: result.data.total_components || 0,  // Total components from API
+            total_skus: result.data.total_skus || 0,     // Total SKUs from API
+            components: components,                  // Store components for later use
+            component_sku_codes: uniqueSkuCodes     // Store unique component SKU codes
+          };
+        });
+        
+        setSkuSearchResults(mappedResults);         // Update search results
+        setShowSkuSearchResults(true);              // Show dropdown
+      } else {
+        throw new Error('No SKU reference search results found in consolidated API');
+      }
+    } catch (error) {
+      console.error('Error searching SKU references from consolidated API, falling back to original:', error);
+      
+      // Fallback to original API
+      try {
       const response = await apiGet(`/skureference/${encodeURIComponent(searchTerm)}`);
       const result = await response.json();
       
@@ -1240,12 +1554,13 @@ const CmSkuDetail: React.FC = () => {
         setShowSkuSearchResults(false);
         setShowComponentTable(false);
       }
-    } catch (error) {
-      // Handle API errors
-      console.error('Error searching SKU reference:', error);
+      } catch (fallbackError) {
+        // Handle fallback API errors
+        console.error('Error searching SKU reference:', fallbackError);
       setSkuSearchResults([]);
       setShowSkuSearchResults(false);
       setShowComponentTable(false);
+      }
     } finally {
       setSkuSearchLoading(false);  // Hide loading state
     }
@@ -1556,11 +1871,29 @@ const CmSkuDetail: React.FC = () => {
         setAddSkuSuccess('');
         setLoading(true); // show full-page loader
         await fetchSkuDetails(); // refresh data
-        // Refresh component details for all SKUs to ensure consistency
+        // Refresh component details for all SKUs to ensure consistency using consolidated API
+        try {
+          const params = new URLSearchParams({
+            include: 'skus'
+          });
+          
+          const result: DashboardResponse = await apiGet(`/cm-dashboard/${cmCode}?${params}`);
+          if (result.success && result.data && result.data.skus) {
+            console.log('SKU data refreshed from consolidated API after add operation');
+            for (const sku of result.data.skus) {
+              await fetchComponentDetails(sku.sku_code);
+            }
+          } else {
+            throw new Error('No SKU data found in consolidated API');
+          }
+        } catch (error) {
+          console.error('Error refreshing SKU data from consolidated API, falling back to original:', error);
+          // Fallback to original API
         const updatedSkuData = await apiGet('/sku-details');
         if (updatedSkuData.success && updatedSkuData.data) {
           for (const sku of updatedSkuData.data) {
             await fetchComponentDetails(sku.sku_code);
+            }
           }
         }
         setLoading(false); // hide loader
@@ -1857,12 +2190,24 @@ const CmSkuDetail: React.FC = () => {
         setEditShowReferenceSkuSection(true);
         setLoading(true); // show full-page loader
         await fetchSkuDetails(); // refresh data
-        // Refresh component details for all SKUs to ensure consistency
-        const updatedSkuData = await apiGet('/sku-details');
-        if (updatedSkuData.success && updatedSkuData.data) {
-          for (const sku of updatedSkuData.data) {
-            await fetchComponentDetails(sku.sku_code);
+        // Refresh component details for all SKUs to ensure consistency using consolidated API
+        try {
+          const params = new URLSearchParams({
+            include: 'skus'
+          });
+          
+          const result: DashboardResponse = await apiGet(`/cm-dashboard/${cmCode}?${params}`);
+          if (result.success && result.data && result.data.skus) {
+            console.log('SKU data refreshed from consolidated API after edit operation');
+            for (const sku of result.data.skus) {
+              await fetchComponentDetails(sku.sku_code);
+            }
+          } else {
+            throw new Error('No SKU data found in consolidated API');
           }
+        } catch (error) {
+          console.error('Error refreshing SKU data from Universal API:', error);
+          // No fallback needed - rely on Universal API only
         }
         setLoading(false); // hide loader
       }, 1200);
@@ -2565,14 +2910,19 @@ const CmSkuDetail: React.FC = () => {
   useEffect(() => {
     const fetchMaterialTypeOptions = async () => {
       try {
-        const response = await apiGet('/component-master-material-type');
-        const result = await response.json();
-        if (result.success && Array.isArray(result.data)) {
-          setMaterialTypeOptions(result.data);
+        console.log('Fetching material types from Universal API');
+        const data = await fetchDashboardData(['master-data']);
+        
+        if (data && data.master_data && data.master_data.material_types) {
+          // Use material_types from Universal API
+          setMaterialTypeOptions(data.master_data.material_types);
+          console.log('Material types loaded from Universal API:', data.master_data.material_types.length);
         } else {
+          console.error('No material_types data in Universal API response');
           setMaterialTypeOptions([]);
         }
       } catch (err) {
+        console.error('Error fetching material types from Universal API:', err);
         setMaterialTypeOptions([]);
       }
     };
@@ -2894,8 +3244,12 @@ const CmSkuDetail: React.FC = () => {
     console.log('🔍 handleComponentStatusChange called with:', { componentId, newStatus, skuCode });
     
     try {
-      console.log('📡 Making status change API call...');
-      const result = await apiPatch(`/component-status-change/${componentId}`, { is_active: newStatus });
+      console.log('📡 Making status change API call to Universal API...');
+      const result = await apiPatch('/toggle-status', { 
+        type: 'component', 
+        id: componentId, 
+        is_active: newStatus 
+      });
       
       console.log('📡 Status change API result:', result);
       
@@ -3071,16 +3425,21 @@ const CmSkuDetail: React.FC = () => {
                         fontSize: '14px',
                         backgroundColor: '#fff',
                         border: 'none',
-                        outline: 'none'
+                        outline: 'none',
+                        opacity: years.length === 0 ? 0.5 : 1
                       }}
                       disabled={years.length === 0}
                     >
                                                 <option value="">Select Reporting Period</option>
-                      {years.map((year, index) => (
+                      {years.length === 0 ? (
+                        <option value="" disabled>Loading periods...</option>
+                      ) : (
+                        years.map((year, index) => (
                         <option key={year.id} value={year.id}>
                           {year.period}
                         </option>
-                      ))}
+                        ))
+                      )}
                     </select>
                   </div>
                 </li>
@@ -3091,7 +3450,7 @@ const CmSkuDetail: React.FC = () => {
       options={skuDescriptions}
       selectedValues={selectedSkuDescriptions}
       onSelectionChange={setSelectedSkuDescriptions}
-      placeholder="Select SKU Code-Description..."
+      placeholder={skuDescriptions.length === 0 ? "Loading SKU descriptions..." : "Select SKU Code-Description..."}
       disabled={skuDescriptions.length === 0}
       loading={skuDescriptions.length === 0}
     />
@@ -3106,13 +3465,19 @@ const CmSkuDetail: React.FC = () => {
         .map(code => ({ value: code, label: code }))}
       selectedValues={selectedComponentCodes}
       onSelectionChange={setSelectedComponentCodes}
-      placeholder="Select Component Code..."
+      placeholder={componentCodes.length === 0 ? "Loading component codes..." : "Select Component Code..."}
       disabled={componentCodes.length === 0}
       loading={componentCodes.length === 0}
     />
   </div>
 </li>
 
+                <li>
+                  <button className="btnCommon btnGreen filterButtons" onClick={handleSearch} disabled={loading}>
+                    <span>Filter</span>
+                    <i className="ri-search-line"></i>
+                  </button>
+                </li>
                 <li>
                   <button className="btnCommon btnBlack filterButtons" onClick={handleReset} disabled={loading}>
                     <span>Reset</span>

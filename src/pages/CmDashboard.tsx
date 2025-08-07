@@ -201,8 +201,8 @@ const CmDashboard: React.FC = () => {
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
-        console.log('Fetching master data from /masterdata endpoint');
-        const result: MasterDataResponse = await apiGet('/masterdata');
+        console.log('Fetching master data from /get-masterdata endpoint');
+        const result: MasterDataResponse = await apiGet('/get-masterdata');
         console.log('Master Data API Response:', result);
         
         if (result.success && result.data) {
@@ -223,8 +223,13 @@ const CmDashboard: React.FC = () => {
              // Set current period as default (most recent period)
              if (processedPeriods.length > 0) {
                const sortedPeriods = [...processedPeriods].sort((a, b) => {
-                 const aYear = parseInt(a.period);
-                 const bYear = parseInt(b.period);
+                 // Extract year from period string (e.g., "July 2025 to June 2026" -> 2025)
+                 const aYearMatch = a.period.match(/\b(20\d{2})\b/);
+                 const bYearMatch = b.period.match(/\b(20\d{2})\b/);
+                 
+                 const aYear = aYearMatch ? parseInt(aYearMatch[1]) : 0;
+                 const bYear = bYearMatch ? parseInt(bYearMatch[1]) : 0;
+                 
                  return bYear - aYear; // Sort in descending order (most recent first)
                });
                
@@ -327,8 +332,13 @@ const CmDashboard: React.FC = () => {
     if (periods.length > 0 && !selectedPeriod) {
       // If periods are loaded but no period is selected, set the current period
       const sortedPeriods = [...periods].sort((a, b) => {
-        const aYear = parseInt(a.period);
-        const bYear = parseInt(b.period);
+        // Extract year from period string (e.g., "July 2025 to June 2026" -> 2025)
+        const aYearMatch = a.period.match(/\b(20\d{2})\b/);
+        const bYearMatch = b.period.match(/\b(20\d{2})\b/);
+        
+        const aYear = aYearMatch ? parseInt(aYearMatch[1]) : 0;
+        const bYear = bYearMatch ? parseInt(bYearMatch[1]) : 0;
+        
         return bYear - aYear; // Sort in descending order (most recent first)
       });
       
@@ -397,8 +407,13 @@ const CmDashboard: React.FC = () => {
     // Set current period as default and apply it as filter
     if (periods.length > 0) {
       const sortedPeriods = [...periods].sort((a, b) => {
-        const aYear = parseInt(a.period);
-        const bYear = parseInt(b.period);
+        // Extract year from period string (e.g., "July 2025 to June 2026" -> 2025)
+        const aYearMatch = a.period.match(/\b(20\d{2})\b/);
+        const bYearMatch = b.period.match(/\b(20\d{2})\b/);
+        
+        const aYear = aYearMatch ? parseInt(aYearMatch[1]) : 0;
+        const bYear = bYearMatch ? parseInt(bYearMatch[1]) : 0;
+        
         return bYear - aYear; // Sort in descending order (most recent first)
       });
       const currentPeriod = sortedPeriods[0];
