@@ -1,0 +1,827 @@
+{
+	"info": {
+		"_postman_id": "cm-sku-detail-api-collection",
+		"name": "CmSkuDetail API Collection",
+		"description": "Complete API collection for the CmSkuDetail page covering SKU management, component management, and audit logging",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Dashboard & Master Data",
+			"item": [
+				{
+					"name": "Get CM Dashboard Data",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/cm-dashboard/{{cm_code}}?skus=true&descriptions=true&references=true&audit=true&master-data=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"cm-dashboard",
+								"{{cm_code}}"
+							],
+							"query": [
+								{
+									"key": "skus",
+									"value": "true"
+								},
+								{
+									"key": "descriptions",
+									"value": "true"
+								},
+								{
+									"key": "references",
+									"value": "true"
+								},
+								{
+									"key": "audit",
+									"value": "true"
+								},
+								{
+									"key": "master-data",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Fetch comprehensive dashboard data for a specific CM code including SKUs, descriptions, references, audit logs, and master data"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Master Data",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/get-masterdata",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"get-masterdata"
+							]
+						},
+						"description": "Fetch master data including periods, regions, material types, component UOMs, packaging materials, packaging levels, and component base UOMs"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SKU Management",
+			"item": [
+				{
+					"name": "Get All SKU Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/sku-details",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sku-details"
+							]
+						},
+						"description": "Fetch all SKU details from the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Add New SKU",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku_code\": \"SKU123\",\n  \"sku_description\": \"Sample SKU Description\",\n  \"cm_code\": \"CM001\",\n  \"period\": \"2024\",\n  \"skutype\": \"external\",\n  \"bulk_expert\": \"bulk\",\n  \"sku_reference\": \"REF123\",\n  \"site\": \"Site A\",\n  \"contractor\": \"Contractor A\",\n  \"server\": \"Server A\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sku-details/add?skutype=external&bulk_expert=bulk",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sku-details",
+								"add"
+							],
+							"query": [
+								{
+									"key": "skutype",
+									"value": "external"
+								},
+								{
+									"key": "bulk_expert",
+									"value": "bulk"
+								}
+							]
+						},
+						"description": "Add a new SKU with specified type and bulk/expert option"
+					},
+					"response": []
+				},
+				{
+					"name": "Update SKU Details",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku_code\": \"SKU123\",\n  \"sku_description\": \"Updated SKU Description\",\n  \"cm_code\": \"CM001\",\n  \"period\": \"2024\",\n  \"skutype\": \"external\",\n  \"bulk_expert\": \"bulk\",\n  \"sku_reference\": \"REF123\",\n  \"site\": \"Site A\",\n  \"contractor\": \"Contractor A\",\n  \"server\": \"Server A\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sku-details/update/SKU123",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sku-details",
+								"update",
+								"SKU123"
+							]
+						},
+						"description": "Update existing SKU details by SKU code"
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle SKU Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 123,\n  \"is_active\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/toggle-status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"toggle-status"
+							]
+						},
+						"description": "Toggle SKU active/inactive status"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Component Management",
+			"item": [
+				{
+					"name": "Get Components by SKU Reference",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku_code\": \"SKU123\",\n  \"period\": \"2024\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/getcomponetbyskurefrence",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"getcomponetbyskurefrence"
+							]
+						},
+						"description": "Fetch components associated with a specific SKU reference"
+					},
+					"response": []
+				},
+				{
+					"name": "Add New Component",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "componentType",
+									"value": "packaging",
+									"type": "text"
+								},
+								{
+									"key": "componentCode",
+									"value": "COMP001",
+									"type": "text"
+								},
+								{
+									"key": "componentDescription",
+									"value": "Sample Component Description",
+									"type": "text"
+								},
+								{
+									"key": "validityFrom",
+									"value": "2024-01-01",
+									"type": "text"
+								},
+								{
+									"key": "validityTo",
+									"value": "2024-12-31",
+									"type": "text"
+								},
+								{
+									"key": "componentCategory",
+									"value": "Category A",
+									"type": "text"
+								},
+								{
+									"key": "componentQuantity",
+									"value": "100",
+									"type": "text"
+								},
+								{
+									"key": "componentUnitOfMeasure",
+									"value": "kg",
+									"type": "text"
+								},
+								{
+									"key": "componentBaseQuantity",
+									"value": "10",
+									"type": "text"
+								},
+								{
+									"key": "componentBaseUnitOfMeasure",
+									"value": "g",
+									"type": "text"
+								},
+								{
+									"key": "wW",
+									"value": "5.5",
+									"type": "text"
+								},
+								{
+									"key": "componentPackagingType",
+									"value": "Type A",
+									"type": "text"
+								},
+								{
+									"key": "componentPackagingMaterial",
+									"value": "Material A",
+									"type": "text"
+								},
+								{
+									"key": "componentUnitWeight",
+									"value": "0.5",
+									"type": "text"
+								},
+								{
+									"key": "componentWeightUnitOfMeasure",
+									"value": "kg",
+									"type": "text"
+								},
+								{
+									"key": "percentPostConsumer",
+									"value": "20",
+									"type": "text"
+								},
+								{
+									"key": "percentPostIndustrial",
+									"value": "15",
+									"type": "text"
+								},
+								{
+									"key": "percentChemical",
+									"value": "10",
+									"type": "text"
+								},
+								{
+									"key": "percentBioSourced",
+									"value": "25",
+									"type": "text"
+								},
+								{
+									"key": "materialStructure",
+									"value": "Structure A",
+									"type": "text"
+								},
+								{
+									"key": "packagingColour",
+									"value": "Blue",
+									"type": "text"
+								},
+								{
+									"key": "packagingLevel",
+									"value": "Level 1",
+									"type": "text"
+								},
+								{
+									"key": "componentDimensions",
+									"value": "10x5x2",
+									"type": "text"
+								},
+								{
+									"key": "period",
+									"value": "2024",
+									"type": "text"
+								},
+								{
+									"key": "packagingEvidence",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/add-component",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"add-component"
+							]
+						},
+						"description": "Add a new component with comprehensive details and file uploads"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Component Details",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "componentType",
+									"value": "packaging",
+									"type": "text"
+								},
+								{
+									"key": "componentCode",
+									"value": "COMP001",
+									"type": "text"
+								},
+								{
+									"key": "componentDescription",
+									"value": "Updated Component Description",
+									"type": "text"
+								},
+								{
+									"key": "validityFrom",
+									"value": "2024-01-01",
+									"type": "text"
+								},
+								{
+									"key": "validityTo",
+									"value": "2024-12-31",
+									"type": "text"
+								},
+								{
+									"key": "componentCategory",
+									"value": "Category A",
+									"type": "text"
+								},
+								{
+									"key": "componentQuantity",
+									"value": "100",
+									"type": "text"
+								},
+								{
+									"key": "componentUnitOfMeasure",
+									"value": "kg",
+									"type": "text"
+								},
+								{
+									"key": "componentBaseQuantity",
+									"value": "10",
+									"type": "text"
+								},
+								{
+									"key": "componentBaseUnitOfMeasure",
+									"value": "g",
+									"type": "text"
+								},
+								{
+									"key": "wW",
+									"value": "5.5",
+									"type": "text"
+								},
+								{
+									"key": "componentPackagingType",
+									"value": "Type A",
+									"type": "text"
+								},
+								{
+									"key": "componentPackagingMaterial",
+									"value": "Material A",
+									"type": "text"
+								},
+								{
+									"key": "componentUnitWeight",
+									"value": "0.5",
+									"type": "text"
+								},
+								{
+									"key": "componentWeightUnitOfMeasure",
+									"value": "kg",
+									"type": "text"
+								},
+								{
+									"key": "percentPostConsumer",
+									"value": "20",
+									"type": "text"
+								},
+								{
+									"key": "percentPostIndustrial",
+									"value": "15",
+									"type": "text"
+								},
+								{
+									"key": "percentChemical",
+									"value": "10",
+									"type": "text"
+								},
+								{
+									"key": "percentBioSourced",
+									"value": "25",
+									"type": "text"
+								},
+								{
+									"key": "materialStructure",
+									"value": "Structure A",
+									"type": "text"
+								},
+								{
+									"key": "packagingColour",
+									"value": "Blue",
+									"type": "text"
+								},
+								{
+									"key": "packagingLevel",
+									"value": "Level 1",
+									"type": "text"
+								},
+								{
+									"key": "componentDimensions",
+									"value": "10x5x2",
+									"type": "text"
+								},
+								{
+									"key": "packagingEvidence",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/component-details/123",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"component-details",
+								"123"
+							]
+						},
+						"description": "Update existing component details by component ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Component Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 456,\n  \"is_active\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/toggle-status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"toggle-status"
+							]
+						},
+						"description": "Toggle component active/inactive status"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Component Data by Code",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/get-component-code-data?component_code=COMP001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"get-component-code-data"
+							],
+							"query": [
+								{
+									"key": "component_code",
+									"value": "COMP001"
+								}
+							]
+						},
+						"description": "Fetch component data by component code"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reference & Search",
+			"item": [
+				{
+					"name": "Get SKU Reference Options",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/getskureference/2024/CM001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"getskureference",
+								"2024",
+								"CM001"
+							]
+						},
+						"description": "Get SKU reference options for a specific period and CM code"
+					},
+					"response": []
+				},
+				{
+					"name": "Search SKU References",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/skureference/SKU123",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"skureference",
+								"SKU123"
+							]
+						},
+						"description": "Search for SKU references by search term"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Audit Logging",
+			"item": [
+				{
+					"name": "Get Component Audit Log",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/component-audit-log/123",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"component-audit-log",
+								"123"
+							]
+						},
+						"description": "Fetch audit log for a specific component"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Component Audit Log",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"component_id\": 123,\n  \"action\": \"UPDATE\",\n  \"details\": \"Component description updated\",\n  \"user_id\": \"user123\",\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/add-component-audit-log",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"add-component-audit-log"
+							]
+						},
+						"description": "Add audit log entry for component changes"
+					},
+					"response": []
+				},
+				{
+					"name": "Add SKU Audit Log",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer Qw8!zR2@pL6",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku_id\": 456,\n  \"action\": \"CREATE\",\n  \"details\": \"New SKU created\",\n  \"user_id\": \"user123\",\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sku-auditlog/add",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sku-auditlog",
+								"add"
+							]
+						},
+						"description": "Add audit log entry for SKU changes"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "cm_code",
+			"value": "CM001",
+			"type": "string"
+		},
+		{
+			"key": "sku_code",
+			"value": "SKU123",
+			"type": "string"
+		},
+		{
+			"key": "component_id",
+			"value": "123",
+			"type": "string"
+		}
+	]
+}
